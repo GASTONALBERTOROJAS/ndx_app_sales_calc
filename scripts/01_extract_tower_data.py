@@ -107,7 +107,7 @@ COMPONENTS_GLOBAL = [
 # --- Logging -----------------------------------------------------------------
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.WARNING,
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 log = logging.getLogger(__name__)
@@ -174,6 +174,62 @@ def normalize_region(raw_region: str) -> str | None:
         log.warning("Unknown region '%s' — skipping.", raw_region)
     return mapped
 
+
+# --- Reporting ---------------------------------------------------------------
+
+def _print_summary(df: pd.DataFrame, output_path: Path) -> None:
+    """Print extraction summary: years, regions, components, data quality."""
+    sep = "=" * 60
+    total = len(df)
+    ncols = len(df.columns)
+
+    years = sorted(df["Year_Production"].dropna().unique())
+    regions = sorted(df["Region"].dropna().unique())
+
+    comp_stats = (
+        df.groupby("Component")
+        .agg(
+            Filas=("Component", "count"),
+            Con_EUR=("Cost_EUR", lambda x: x.notna().sum()),
+            Con_USD=("Cost_USD", lambda x: x.notna().sum()),
+        )
+        .reset_index()
+        .sort_values("Filas", ascending=False)
+    )
+
+    con_eur = df["Cost_EUR"].notna().sum()
+    con_usd = df["Cost_USD"].notna().sum()
+    con_ambas = (df["Cost_EUR"].notna() & df["Cost_USD"].notna()).sum()
+
+    print(f"\n{sep}")
+    print("EXTRACCION COMPLETADA")
+    print(sep)
+
+    print(f"\n  Archivo guardado:")
+    print(f"    {output_path}")
+    print(f"    {total:,} filas | {ncols} columnas")
+
+    print(f"\n  Years:")
+    for y in years:
+        print(f"    - {int(y)}")
+
+    print(f"\n  Regiones ({len(regions)}):")
+    for r in regions:
+        print(f"    - {r}")
+
+    print(f"\n  Componentes encontrados ({len(comp_stats)} unicos):\n")
+    hdr = f"    {'Componente':<50} {'Filas':>7}"
+    print(hdr)
+    print("    " + "-" * (len(hdr) - 4))
+    for _, row in comp_stats.iterrows():
+        print(f"    {row['Component']:<50} {int(row['Filas']):>7,}")
+
+    print(f"\n  Calidad de datos:")
+    print(f"    Filas con Cost_EUR:    {con_eur:>7,}  ({con_eur/total*100:.1f}%)")
+    print(f"    Filas con Cost_USD:    {con_usd:>7,}  ({con_usd/total*100:.1f}%)")
+    print(f"    Filas con ambas:       {con_ambas:>7,}")
+
+    print(f"\n{sep}\n")
 
 # --- Main extraction ---------------------------------------------------------
 
@@ -404,16 +460,7 @@ def main():
     df_final.to_excel(OUTPUT_FILE, index=False, sheet_name="Tower_Extracted")
     log.info("Output written to: %s", OUTPUT_FILE)
 
-    # Summary stats
-    print("\n=== EXTRACTION SUMMARY ===")
-    print(f"Total output rows: {len(df_final)}")
-    print(f"\nComponents found:")
-    for comp, cnt in df_final.groupby("Component").size().items():
-        print(f"  {comp}: {cnt} rows")
-    print(f"\nYears: {sorted(df_final['Year_Production'].dropna().unique())}")
-    print(f"Regions: {sorted(df_final['Region'].dropna().unique())}")
-    print(f"\nSample (first 10 rows):")
-    print(df_final.head(10).to_string(index=False))
+    _print_summary(df_final, OUTPUT_FILE)
 
 
 if __name__ == "__main__":

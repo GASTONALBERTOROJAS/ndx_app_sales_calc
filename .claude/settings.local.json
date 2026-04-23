@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python scripts/02_verify_output.py)"
+    ]
+  }
+}
