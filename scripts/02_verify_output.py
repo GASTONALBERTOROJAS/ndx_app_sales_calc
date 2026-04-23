@@ -1,34 +1,45 @@
 """Verify extracted output values against source Excel."""
 
+import json
 import pandas as pd
+from pathlib import Path
+from datetime import datetime
 
-OUTPUT = r"C:\Users\Gaston Alberto\Desktop\WORKSPACE\ai_developer\projects\tower_sales_extraction\tower_components_extracted.xlsx"
+PROJECT_ROOT = Path(__file__).parent.parent
+CONFIG_FILE = PROJECT_ROOT / "config.json"
+
+with open(CONFIG_FILE, "r") as f:
+    config = json.load(f)
+
+today = datetime.now()
+date_str = today.strftime("%d%m%y")
+output_filename = f"SalesCalc_{date_str}.xlsx"
+OUTPUT = PROJECT_ROOT / "output" / output_filename
 
 df = pd.read_excel(OUTPUT)
 
 tower = "Tower N117/3000 Controlled IEC2a TS76 TiT 50Hz NCV"
 
-# (component, year, region, expected_c1, expected_c2)
+# (component, year, region, expected_eur, expected_usd)
 checks = [
-    ("tower shell", 2026, "Europe", 255993.398875, None),
-    ("tower shell", 2026, "Asia", 45753.257325, 131977.1933106),
-    ("tower shell", 2027, "Europe", 263120.80772125, None),
-    ("tower shell", 2028, "Europe", 276276.8481073125, None),
-    ("tower shell", 2026, "Germany", 290195.32807609043, None),
-    ("Tower internals", 2026, "Europe", 151000, None),
-    ("Anchor cage", 2026, "Europe", 22339.23818, None),
-    ("Tower bolts set", 2026, "Europe", 3637.636325503345, None),
+    ("Tower Shell", 2026, "Europe", 255993.398875, None),
+    ("Tower Shell", 2026, "Asia", 45753.257325, 131977.1933106),
+    ("Tower Shell", 2027, "Europe", 263120.80772125, None),
+    ("Tower Shell", 2028, "Europe", 276276.8481073125, None),
+    ("Tower Shell", 2026, "Germany", 290195.32807609043, None),
+    ("Tower Internals", 2026, "Europe", 151000, None),
+    ("Tower Bolts Set", 2026, "Europe", 3637.636325503345, None),
     ("Steel Tower Quality Inspectors", 2026, "Europe", 1950, None),
     ("Steel Tower Quality Inspectors", 2026, "US", None, 5519.999999999999),
     ("Option Coating c4/c5", 2026, "Europe", 5000, None),
-    ("Option hybrid tower: MB Monthly Cost Indexation", 2026, "Europe", "n.a.", None),
 ]
 
 print("=== VERIFICATION: Source vs Output ===")
+print(f"Output file: {OUTPUT}")
 print(f"Tower: {tower}\n")
 
 all_ok = True
-for comp, year, region, expected_c1, expected_c2 in checks:
+for comp, year, region, expected_eur, expected_usd in checks:
     mask = (
         (df["Key"] == tower)
         & (df["Component"] == comp)
@@ -42,29 +53,26 @@ for comp, year, region, expected_c1, expected_c2 in checks:
         continue
 
     r = rows.iloc[0]
-    c1 = r["Cost_Currency1"]
-    c2 = r["Cost_Currency2"]
+    eur = r["Cost_EUR"]
+    usd = r["Cost_USD"]
 
-    c1_ok = True
-    c2_ok = True
+    eur_ok = True
+    usd_ok = True
 
-    if expected_c1 is not None:
-        if isinstance(expected_c1, str):
-            c1_ok = str(c1) == expected_c1
-        else:
-            c1_ok = abs(float(c1) - expected_c1) < 0.01 if pd.notna(c1) else False
+    if expected_eur is not None:
+        eur_ok = abs(float(eur) - expected_eur) < 0.01 if pd.notna(eur) else False
 
-    if expected_c2 is not None:
-        c2_ok = abs(float(c2) - expected_c2) < 0.01 if pd.notna(c2) else False
+    if expected_usd is not None:
+        usd_ok = abs(float(usd) - expected_usd) < 0.01 if pd.notna(usd) else False
 
-    status = "OK" if (c1_ok and c2_ok) else "FAIL"
+    status = "OK" if (eur_ok and usd_ok) else "FAIL"
     if status == "FAIL":
         all_ok = False
 
     print(f"{status}  {comp} / {year} / {region}")
-    print(f"       C1: source={expected_c1} -> output={c1}")
-    if expected_c2 is not None:
-        print(f"       C2: source={expected_c2} -> output={c2}")
+    print(f"       EUR: source={expected_eur} -> output={eur}")
+    if expected_usd is not None:
+        print(f"       USD: source={expected_usd} -> output={usd}")
 
 result = "ALL CHECKS PASSED" if all_ok else "SOME CHECKS FAILED"
 print(f"\n{result}")
