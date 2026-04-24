@@ -14,9 +14,8 @@ def get_exe_dir() -> Path:
     if getattr(sys, 'frozen', False):
         # Running as PyInstaller exe
         return Path(sys.executable).parent
-    # Running in development: __file__ is core/paths.py
-    return Path(__file__).parent.parent
-
+    # Running in development: __file__ is src/core/paths.py
+    return Path(__file__).parent.parent.parent
 
 def get_bundled_resource(relative_path: str) -> Path:
     """
@@ -27,7 +26,7 @@ def get_bundled_resource(relative_path: str) -> Path:
     """
     if getattr(sys, 'frozen', False):
         return Path(sys._MEIPASS) / relative_path
-    return Path(__file__).parent.parent / relative_path
+    return Path(__file__).parent.parent.parent / relative_path
 
 
 def ensure_output_dir(output_path: Path) -> None:

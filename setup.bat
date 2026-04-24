@@ -51,7 +51,7 @@ echo.
 echo To activate the environment in the future, run:
 echo   .venv\Scripts\activate.bat
 echo.
-echo To run the extraction script, use:
-echo   python scripts/extract_tower_data.py
+echo To run the application, use:
+echo   python src\main.py
 echo.
 pause
