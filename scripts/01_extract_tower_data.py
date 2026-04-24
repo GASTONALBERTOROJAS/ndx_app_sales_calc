@@ -32,10 +32,13 @@ Salida:
 import re
 import json
 import logging
+import warnings
 import openpyxl
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
+
+warnings.filterwarnings("ignore", category=FutureWarning, message=".*ChainedAssignmentError.*")
 
 # --- Configuration -----------------------------------------------------------
 
@@ -425,10 +428,10 @@ def main():
         "Tower internals": "Tower Internals",
         "Tower bolts set": "Tower Bolts Set",
     }
-    df["Component"] = df["Component"].replace(COMPONENT_NAME_MAP)
+    df.loc[:, "Component"] = df["Component"].replace(COMPONENT_NAME_MAP)
 
     # Normalize Year_Production to int
-    df["Year_Production"] = pd.to_numeric(df["Year_Production"], errors="coerce").astype("Int64")
+    df.loc[:, "Year_Production"] = pd.to_numeric(df["Year_Production"], errors="coerce").astype("Int64")
 
     # Create pivot columns
     df_c1 = df[df["currency_type"] == 1].rename(columns={"value": "Cost_EUR"})
