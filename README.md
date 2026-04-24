@@ -57,11 +57,20 @@ Archivo central de configuración que define:
 
 ### 1. Crear y activar entorno virtual
 
+#### Windows (Nordex — usar py launcher con Python 3.12)
+
+```bash
+py -3.12 -m venv .venv
+.venv\Scripts\activate
+```
+
+#### Otros entornos
+
 ```bash
 # Crear .venv
 python -m venv .venv
 
-# Activar (Windows)
+# Activar (Windows — otras versiones)
 .venv\Scripts\activate
 
 # Activar (Linux/Mac)
