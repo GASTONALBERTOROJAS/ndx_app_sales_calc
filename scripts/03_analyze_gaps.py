@@ -24,11 +24,6 @@ OUTPUT = PROJECT_ROOT / "output" / output_filename
 
 df = pd.read_excel(OUTPUT)
 
-# Convert Cost columns to numeric
-df = df.copy()
-df["Cost_EUR"] = pd.to_numeric(df["Cost_EUR"], errors="coerce")
-df["Cost_USD"] = pd.to_numeric(df["Cost_USD"], errors="coerce")
-
 # Filas sin ningún costo
 missing = df[(df["Cost_EUR"].isna()) & (df["Cost_USD"].isna())].copy()
 
