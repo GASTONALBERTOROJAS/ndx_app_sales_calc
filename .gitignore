@@ -38,9 +38,8 @@ wheels/
 Thumbs.db
 
 # Project specific
-output/*.xlsx
-input_source/*
-!input_source/.gitkeep
+# output/*.xlsx - removed to allow tracking
+# input_source/* - removed to allow tracking
 
 # Logs
 *.log
