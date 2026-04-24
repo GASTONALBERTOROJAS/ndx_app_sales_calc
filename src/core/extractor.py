@@ -443,6 +443,9 @@ def run_extraction(
         by=["Component", "Year_Production", "Region", "Key"]
     ).reset_index(drop=True)
 
+    # Filter by selected years before saving
+    df_final = df_final[df_final["Year_Production"].isin(target_years)].copy()
+
     _progress(95, f"Escribiendo {len(df_final):,} filas a {output_path}...")
     df_final.to_excel(str(output_path), index=False, sheet_name="Tower_Extracted")
 
