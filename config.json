@@ -1,19 +1,15 @@
 {
-  "input_file_path": "C:\\Users\\Gaston Alberto\\Downloads\\wetransfer_20260327_input-sheet_sales-calculation-tower_v26-1_usd_for2026_2027_2028-rev01-xlsx_2026-04-22_1125\\20260327_Input Sheet_Sales Calculation Tower_v26.1_USD_for2026_2027_2028- Rev01.xlsx",
-  "_input_file_comment": "Path to the Excel source file. Download from SharePoint: https://nordex.sharepoint.com/:f:/r/sites/GlobalSourcingControlling/Shared%20Documents/General/Transfer/Patxi/Sales%20Calc/26.1 and update this path. Or place it in input_source/ folder.",
-  
-  "output_file_path": "output/SalesCalc_DDMMYY.xlsx",
-  "_output_comment": "Output filename pattern (DDMMYY is auto-generated). Example: SalesCalc_220426.xlsx (22 April 2026)",
-  
+  "_note": "GUI and exe select input/output files interactively. This file provides optional overrides for sheet names and region list.",
+
   "source_sheets": {
     "ts_sc": "TS SC v26.1",
     "tcs_mb": "TCS_MB SC v26.1"
   },
-  "_sheets_comment": "Names of the two sheets to extract from the source Excel file.",
-  
+  "_sheets_comment": "Names of the two sheets to extract. Change only if source file structure changes.",
+
   "target_years": [2026, 2027, 2028],
-  "_years_comment": "Years to process. Add more years if needed: [2026, 2027, 2028, 2029]",
-  
+  "_years_comment": "Default years for CLI scripts. GUI allows user to select any combination.",
+
   "canonical_regions": [
     "Europe",
     "Germany",
