@@ -426,7 +426,8 @@ def run_extraction(
         "logistics": "Concrete Tower Logistics",
         "c&i": "Concrete Tower C&I",
         "ac": "Anchor cage",
-        "bolts": "Tower Bolts Set"
+        "bolts": "Tower Bolts Set",
+        "cbam": "CBAM"
     }
 
     tcs_col_map = {}
