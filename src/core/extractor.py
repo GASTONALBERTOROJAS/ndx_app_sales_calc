@@ -55,6 +55,7 @@ COMPONENTS_WITH_YEAR = [
     "Tower internals",
     "Anchor cage",
     "Tower bolts set",
+    "cbam",
 ]
 
 COMPONENTS_REGION_ONLY = [
@@ -73,6 +74,7 @@ COMPONENT_NAME_MAP = {
     "tower shell": "Tower Shell",
     "Tower internals": "Tower Internals",
     "Tower bolts set": "Tower Bolts Set",
+    "cbam": "CBAM",
 }
 
 TCS_MB_COMPONENTS = [
@@ -306,6 +308,10 @@ def run_extraction(
         if parsed is None:
             continue
         component, year, currency_type, region = parsed
+
+        # Correct Excel copy-paste typo: Col 182 and Col 202 have 'CBAM2027' in 2028 blocks
+        if component.lower() == "cbam" and col >= 150 and year == "2027":
+            year = "2028"
 
         if component.lower() not in all_target_components:
             continue
