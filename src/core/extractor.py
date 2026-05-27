@@ -22,7 +22,8 @@ warnings.filterwarnings("ignore", category=FutureWarning, message=".*ChainedAssi
 
 DEFAULT_CANONICAL_REGIONS = [
     "Europe", "Germany", "Turkey", "Turkey_DOM",
-    "Asia", "China", "Poland", "Italy", "Greece", "CAN", "US"
+    "Asia", "China", "Poland", "Italy", "Greece", "CAN", "US",
+    "Arcosa US", "CS Wind US"
 ]
 
 DEFAULT_SHEET_TS = "TS SC v26.2"
@@ -44,10 +45,10 @@ REGION_MAP = {
     "Greece": "Greece",
     "CAN": "CAN",
     "US": "US",
-    "Arcosa US": "US",
-    "Arcosa(US)": "US",
-    "CS Wind US": "US",
-    "CS Wind(US)": "US",
+    "Arcosa US": "Arcosa US",
+    "Arcosa(US)": "Arcosa US",
+    "CS Wind US": "CS Wind US",
+    "CS Wind(US)": "CS Wind US",
 }
 
 COMPONENTS_WITH_YEAR = [

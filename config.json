@@ -21,7 +21,9 @@
     "Italy",
     "Greece",
     "CAN",
-    "US"
+    "US",
+    "Arcosa US",
+    "CS Wind US"
   ],
   "_regions_comment": "List of 11 canonical regions. All region variants are normalized to these values."
 }
