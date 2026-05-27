@@ -305,6 +305,10 @@ def run_extraction(
 
     col_map = {}
     for col, val in row_data[3].items():
+        # Ignore comparison/history blocks (which start at column index 258)
+        if col >= 258:
+            continue
+
         parsed = parse_row3_value(str(val))
         if parsed is None:
             continue
