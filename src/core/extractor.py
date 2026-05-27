@@ -25,8 +25,8 @@ DEFAULT_CANONICAL_REGIONS = [
     "Asia", "China", "Poland", "Italy", "Greece", "CAN", "US"
 ]
 
-DEFAULT_SHEET_TS = "TS SC v26.1"
-DEFAULT_SHEET_TCS = "TCS_MB SC v26.1"
+DEFAULT_SHEET_TS = "TS SC v26.2"
+DEFAULT_SHEET_TCS = "TCS SC v26.2"
 
 REGION_MAP = {
     "Europe": "Europe",
@@ -154,6 +154,13 @@ def normalize_region(raw_region: str) -> str | None:
     """
     if not raw_region:
         return None
+    
+    # Try case-insensitive lookup first
+    raw_clean = raw_region.strip().lower()
+    for key, val in REGION_MAP.items():
+        if key.lower() == raw_clean:
+            return val
+            
     mapped = REGION_MAP.get(raw_region)
     if mapped is None:
         log.warning("Unknown region '%s' — skipping.", raw_region)
@@ -372,7 +379,7 @@ def run_extraction(
     _progress(55, f"Extraídos {len(records)} registros de {row_count} torres (TS SC)")
     wb.close()
 
-    # ---- Step 2b: Extract from TCS_MB SC (flat table) ----------------
+    # ---- Step 2b: Extract from TCS SC (dynamic header parser for v26.2+) ----------------
     _progress(60, f"Abriendo workbook para {sheet_tcs}...")
     wb2 = openpyxl.load_workbook(str(input_path), data_only=True, read_only=True)
     ws2 = wb2[sheet_tcs]
@@ -380,8 +387,134 @@ def run_extraction(
     tcs_records = []
     tcs_row_count = 0
 
-    _progress(65, "Leyendo datos de TCS_MB...")
-    for row in ws2.iter_rows(min_row=86, max_row=500):
+    _progress(65, "Analizando estructura dinámica de columnas en TCS SC...")
+    
+    # Read rows 1 to 5 to understand headers
+    header_rows = {1: {}, 2: {}, 3: {}, 4: {}, 5: {}}
+    for row in ws2.iter_rows(min_row=1, max_row=5):
+        for c in row:
+            try:
+                if c.value is not None:
+                    header_rows[c.row][c.column] = c.value
+            except AttributeError:
+                continue
+
+    # 1. Identify key columns (Key, Brand) in Row 5 (or fallbacks)
+    key_col = None
+    brand_col = None
+    for col, val in header_rows[5].items():
+        val_str = str(val).strip().lower()
+        if val_str == "key":
+            key_col = col
+        elif val_str == "brand":
+            brand_col = col
+
+    if not key_col:
+        # Fallback to column B (2) if not found explicitly
+        key_col = 2
+    if not brand_col:
+        # Fallback to column C (3) if not found explicitly
+        brand_col = 3
+
+    # 2. Parse the Region + Year block columns from Row 3 (or Row 4) and Row 5
+    # Standard components we expect to extract
+    COMPONENT_PATTERNS = {
+        "tower shell": "Tower Shell",
+        "internals": "Tower Internals",
+        "foundations": "Foundations",
+        "keystones": "Concrete Tower Keystones + Internals",
+        "logistics": "Concrete Tower Logistics",
+        "c&i": "Concrete Tower C&I",
+        "ac": "Anchor cage",
+        "bolts": "Tower Bolts Set"
+    }
+
+    tcs_col_map = {}
+
+    # Identify blocks from Row 3
+    # A block header is like "EUROPE 2027", "GERMANY 2027", "TURKEY  2027", "POLAND 2027", etc.
+    block_starts = [] # list of (col_idx, region, year)
+    for col, val in header_rows[3].items():
+        if not val or not isinstance(val, str):
+            continue
+        val_clean = val.strip()
+        m = re.match(r"^([A-Za-z\s]+?)\s*(\d{4})$", val_clean)
+        if m:
+            raw_region = m.group(1).strip()
+            norm_region = normalize_region(raw_region)
+            year = int(m.group(2))
+            if norm_region:
+                block_starts.append((col, norm_region, year))
+
+    # Sort blocks by column index
+    block_starts.sort(key=lambda x: x[0])
+
+    # Assign columns to blocks and map components
+    for i, (start_col, region, year) in enumerate(block_starts):
+        end_col = block_starts[i+1][0] if i + 1 < len(block_starts) else start_col + 20
+        
+        for col in range(start_col, end_col):
+            cell_val = header_rows[5].get(col)
+            if not cell_val:
+                continue
+            cell_str = str(cell_val).strip()
+            
+            for pattern, comp_name in COMPONENT_PATTERNS.items():
+                if pattern in cell_str.lower():
+                    tcs_col_map[col] = {
+                        "type": "block",
+                        "component": comp_name,
+                        "region": region,
+                        "year": year
+                    }
+                    break
+
+    # 3. Parse options/standalone columns from Row 2
+    for col, val in header_rows[2].items():
+        if not val or not isinstance(val, str):
+            continue
+        val_clean = val.strip()
+        
+        if "option coating" in val_clean.lower():
+            tcs_col_map[col] = {
+                "type": "global",
+                "component": "Option Coating c4/c5"
+            }
+        elif "white coating of concrete" in val_clean.lower():
+            tcs_col_map[col] = {
+                "type": "global",
+                "component": "Option hybrid tower: white coating of concrete part"
+            }
+        elif "no red stripe on concrete" in val_clean.lower():
+            tcs_col_map[col] = {
+                "type": "global",
+                "component": "Option hybrid tower: no red stripe on concrete part"
+            }
+        elif "steel tower quality inspectors" in val_clean.lower():
+            r3_val = header_rows[3].get(col)
+            region_name = None
+            if r3_val:
+                r3_str = str(r3_val)
+                m_rgn = re.search(r"Region\s+([A-Za-z\s]+)", r3_str, re.IGNORECASE)
+                if m_rgn:
+                    region_name = normalize_region(m_rgn.group(1).strip())
+                else:
+                    region_name = normalize_region(r3_str.strip())
+            
+            if region_name:
+                tcs_col_map[col] = {
+                    "type": "region_option",
+                    "component": "Steel Tower Quality Inspectors",
+                    "region": region_name
+                }
+
+    log.info("Mapeadas %d columnas en TCS SC", len(tcs_col_map))
+    _progress(70, f"Mapeadas {len(tcs_col_map)} columnas en TCS SC. Procesando filas...")
+
+    # 4. Read data rows (Row 6 onwards)
+    TARGET_YEARS = [int(y) for y in target_years]
+
+    for row in ws2.iter_rows(min_row=6, max_row=1000):
         row_vals = {}
         for c in row:
             try:
@@ -389,28 +522,63 @@ def run_extraction(
             except AttributeError:
                 continue
 
-        key = row_vals.get(2)
+        key = row_vals.get(key_col)
         if not key:
             continue
 
-        sourcing = row_vals.get(3)
-        year = row_vals.get(4)
+        brand = row_vals.get(brand_col) or "Nx"
         tcs_row_count += 1
 
-        for col_idx, comp_name in TCS_MB_COMPONENTS:
-            value = row_vals.get(col_idx)
-            tcs_records.append({
-                "Component_Category": "Tower",
-                "Component": comp_name,
-                "Key": key,
-                "Brand": "Nx",
-                "Year_Production": year,
-                "Region": sourcing,
-                "currency_type": 1,
-                "value": value,
-            })
+        for col, meta in tcs_col_map.items():
+            value = row_vals.get(col)
+            if value is not None:
+                if isinstance(value, str) and value.strip().lower() in ['n.a.', 'na', '']:
+                    value = None
 
-    _progress(75, f"Extraídos {len(tcs_records)} registros de {tcs_row_count} torres (TCS_MB)")
+            if value is None:
+                continue
+
+            if meta["type"] == "block":
+                if meta["year"] in TARGET_YEARS:
+                    tcs_records.append({
+                        "Component_Category": "Tower",
+                        "Component": meta["component"],
+                        "Key": key,
+                        "Brand": brand,
+                        "Year_Production": meta["year"],
+                        "Region": meta["region"],
+                        "currency_type": 1,
+                        "value": value,
+                    })
+
+            elif meta["type"] == "global":
+                for yr in TARGET_YEARS:
+                    for rgn in canonical_regions:
+                        tcs_records.append({
+                            "Component_Category": "Tower",
+                            "Component": meta["component"],
+                            "Key": key,
+                            "Brand": brand,
+                            "Year_Production": yr,
+                            "Region": rgn,
+                            "currency_type": 1,
+                            "value": value,
+                        })
+
+            elif meta["type"] == "region_option":
+                for yr in TARGET_YEARS:
+                    tcs_records.append({
+                        "Component_Category": "Tower",
+                        "Component": meta["component"],
+                        "Key": key,
+                        "Brand": brand,
+                        "Year_Production": yr,
+                        "Region": meta["region"],
+                        "currency_type": 1,
+                        "value": value,
+                    })
+
+    _progress(75, f"Extraídos {len(tcs_records)} registros de {tcs_row_count} torres (TCS SC)")
     wb2.close()
 
     records.extend(tcs_records)
