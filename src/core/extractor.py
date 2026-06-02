@@ -22,8 +22,8 @@ warnings.filterwarnings("ignore", category=FutureWarning, message=".*ChainedAssi
 
 DEFAULT_CANONICAL_REGIONS = [
     "Europe", "Germany", "Turkey", "Turkey_DOM",
-    "Asia", "China", "Poland", "Italy", "Greece", "CAN", "US",
-    "Arcosa US", "CS Wind US"
+    "Asia", "China", "Poland", "Italy", "Greece", "US",
+    "Arcosa US", "CS Wind US", "Canada"
 ]
 
 DEFAULT_SHEET_TS = "TS SC v26.2"
@@ -43,7 +43,6 @@ REGION_MAP = {
     "Poland": "Poland",
     "Italy": "Italy",
     "Greece": "Greece",
-    "CAN": "CAN",
     "US": "US",
     "Arcosa US": "Arcosa US",
     "Arcosa(US)": "Arcosa US",
@@ -57,6 +56,7 @@ COMPONENTS_WITH_YEAR = [
     "Anchor cage",
     "Tower bolts set",
     "cbam",
+    "Concrete Tower Keystones + Internals",
 ]
 
 COMPONENTS_REGION_ONLY = [
@@ -69,6 +69,7 @@ COMPONENTS_GLOBAL = [
     "Option hybrid tower: MB Monthly Cost Indexation",
     "Option hybrid tower: white coating of concrete part",
     "Option hybrid tower: no red stripe on concrete part",
+    "Fire Detection System",
 ]
 
 COMPONENT_NAME_MAP = {
@@ -76,6 +77,7 @@ COMPONENT_NAME_MAP = {
     "Tower internals": "Tower Internals",
     "Tower bolts set": "Tower Bolts Set",
     "cbam": "CBAM",
+    "Concrete Tower Keystones + Internals": "Concrete Tower Keystones + Internals",
 }
 
 TCS_MB_COMPONENTS = [
@@ -168,6 +170,18 @@ def normalize_region(raw_region: str) -> str | None:
     if mapped is None:
         log.warning("Unknown region '%s' — skipping.", raw_region)
     return mapped
+
+
+def clean_cost_value(val):
+    if val is None:
+        return None
+    if isinstance(val, str):
+        v = val.strip()
+        if v == "":
+            return None
+        if v.lower() in ["n.a.", "n.a", "na"]:
+            return "N/A"
+    return val
 
 
 def _print_summary(df: pd.DataFrame, output_path: Path, log_callback=None) -> None:
@@ -283,7 +297,7 @@ def run_extraction(
 
     # ---- Step 1: Build column map from rows 1-3 and 7 ----------------------
     _progress(12, "Leyendo encabezados...")
-    row_data = {1: {}, 2: {}, 3: {}, 7: {}}
+    row_data = {1: {}, 2: {}, 3: {}, 5: {}, 6: {}, 7: {}}
     for row in ws.iter_rows(min_row=1, max_row=7):
         for c in row:
             try:
@@ -339,6 +353,33 @@ def run_extraction(
             "region": final_region,
         }
 
+    # Manual mapping for Canadian Projects in TS SC (from Rows 5 and 6)
+    for col in range(1, 258):
+        val5 = str(row_data[5].get(col) or "").strip()
+        val6 = str(row_data[6].get(col) or "").strip()
+        if val6.lower() == "canadian projects":
+            if "service lift" in val5.lower():
+                comp_name = "Option:Service Lift 60 Hz Canada"
+            elif "mv cables" in val5.lower():
+                comp_name = "Option: MV Cables Canada/US- CSA/UL Std"
+            else:
+                comp_name = val5
+            
+            if comp_name:
+                col_map[col] = {
+                    "component": comp_name,
+                    "year": None,
+                    "currency_type": 1,
+                    "region": "Canada",
+                }
+        elif "fire detection system" in val5.lower():
+            col_map[col] = {
+                "component": "Fire Detection System",
+                "year": None,
+                "currency_type": 1,
+                "region": None,
+            }
+
     _progress(30, f"Identificadas {len(col_map)} columnas objetivo")
 
     # ---- Step 2: Read data rows (row 8+) ------------------------------------
@@ -355,14 +396,18 @@ def run_extraction(
                 continue
 
         key = row_vals.get(4)
-        if not key:
+        if not key or str(key).strip().lower() == "key":
             continue
 
         brand = row_vals.get(5)
         row_count += 1
 
         for col, meta in col_map.items():
-            value = row_vals.get(col)
+            raw_val = row_vals.get(col)
+            value = clean_cost_value(raw_val)
+
+            if value is None:
+                continue
 
             if meta["year"] is None:
                 years_to_emit = TARGET_YEARS
@@ -370,9 +415,13 @@ def run_extraction(
                 years_to_emit = [meta["year"]]
 
             if meta["region"] is None:
-                regions_to_emit = canonical_regions
+                # Exclude 'Canada' for global components unless explicitly specified
+                regions_to_emit = [r for r in canonical_regions if r != "Canada"]
             else:
                 regions_to_emit = [meta["region"]]
+                # Optionals for US also apply to Arcosa US and CS Wind US
+                if meta["region"] == "US" and meta["component"].lower() in [c.lower() for c in COMPONENTS_REGION_ONLY]:
+                    regions_to_emit.extend(["Arcosa US", "CS Wind US"])
 
             for yr in years_to_emit:
                 for rgn in regions_to_emit:
@@ -431,9 +480,9 @@ def run_extraction(
     # Standard components we expect to extract
     COMPONENT_PATTERNS = {
         "tower shell": "Tower Shell",
+        "keystones": "Concrete Tower Keystones + Internals",
         "internals": "Tower Internals",
         "foundations": "Foundations",
-        "keystones": "Concrete Tower Keystones + Internals",
         "logistics": "Concrete Tower Logistics",
         "c&i": "Concrete Tower C&I",
         "ac": "Anchor cage",
@@ -502,6 +551,11 @@ def run_extraction(
                 "type": "global",
                 "component": "Option hybrid tower: no red stripe on concrete part"
             }
+        elif "fire detection system" in val_clean.lower():
+            tcs_col_map[col] = {
+                "type": "global",
+                "component": "Fire Detection System"
+            }
         elif "steel tower quality inspectors" in val_clean.lower():
             r3_val = header_rows[3].get(col)
             region_name = None
@@ -535,17 +589,15 @@ def run_extraction(
                 continue
 
         key = row_vals.get(key_col)
-        if not key:
+        if not key or str(key).strip().lower() == "key":
             continue
 
         brand = row_vals.get(brand_col) or "Nx"
         tcs_row_count += 1
 
         for col, meta in tcs_col_map.items():
-            value = row_vals.get(col)
-            if value is not None:
-                if isinstance(value, str) and value.strip().lower() in ['n.a.', 'na', '']:
-                    value = None
+            raw_val = row_vals.get(col)
+            value = clean_cost_value(raw_val)
 
             if value is None:
                 continue
@@ -564,8 +616,12 @@ def run_extraction(
                     })
 
             elif meta["type"] == "global":
+                # Opcionales TCS aplican solo a Europe, Poland, Germany, Turkey
+                allowed_tcs_regions = {"Europe", "Poland", "Germany", "Turkey", "Turkey_DOM"}
+                global_regions = [r for r in canonical_regions if r in allowed_tcs_regions]
+                
                 for yr in TARGET_YEARS:
-                    for rgn in canonical_regions:
+                    for rgn in global_regions:
                         tcs_records.append({
                             "Component_Category": "Tower",
                             "Component": meta["component"],
@@ -578,17 +634,22 @@ def run_extraction(
                         })
 
             elif meta["type"] == "region_option":
+                regions_to_emit = [meta["region"]]
+                if meta["region"] == "US":
+                    regions_to_emit.extend(["Arcosa US", "CS Wind US"])
+                
                 for yr in TARGET_YEARS:
-                    tcs_records.append({
-                        "Component_Category": "Tower",
-                        "Component": meta["component"],
-                        "Key": key,
-                        "Brand": brand,
-                        "Year_Production": yr,
-                        "Region": meta["region"],
-                        "currency_type": 1,
-                        "value": value,
-                    })
+                    for rgn in regions_to_emit:
+                        tcs_records.append({
+                            "Component_Category": "Tower",
+                            "Component": meta["component"],
+                            "Key": key,
+                            "Brand": brand,
+                            "Year_Production": yr,
+                            "Region": rgn,
+                            "currency_type": 1,
+                            "value": value,
+                        })
 
     _progress(75, f"Extraídos {len(tcs_records)} registros de {tcs_row_count} torres (TCS SC)")
     wb2.close()
@@ -614,6 +675,9 @@ def run_extraction(
     df_c2 = df_c2[merge_keys + ["Cost_Currency2"]]
 
     df_final = pd.merge(df_c1, df_c2, on=merge_keys, how="outer")
+
+    df_final["Cost_Currency1"] = df_final["Cost_Currency1"].fillna(0)
+    df_final["Cost_Currency2"] = df_final["Cost_Currency2"].fillna(0)
 
     output_cols = [
         "Component_Category", "Component", "Key", "Brand",
