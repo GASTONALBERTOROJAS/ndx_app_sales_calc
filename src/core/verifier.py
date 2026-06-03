@@ -26,7 +26,7 @@ EXPECTED_COMPONENTS = {
     "Concrete Tower C&I",
     "Option:Service Lift 60 Hz Canada",
     "Option: MV Cables Canada/US- CSA/UL Std",
-    "Fire Detection System",
+    "Option Fire Detection System",
 }
 
 # Hardcoded spot checks for reference tower — only years 2026-2028

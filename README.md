@@ -43,7 +43,7 @@ No necesitas instalar Python ni ningún programa adicional.
 
 ## Novedades y Reglas de Negocio (Update)
 
-- **Opcional Fire Detection System**: Extraído como un opcional global aplicable.
+- **Opcional Option Fire Detection System**: Extraído como un opcional global aplicable.
 - **Relleno Inteligente de Costos**: Las celdas en blanco en el Excel ahora son mapeadas automáticamente a `0`. Las celdas con el texto `n.a.` son procesadas como `N/A`. 
 - **Limpieza Automática**: Las torres que se queden en blanco (o con un 0 automático) para ambas monedas en un componente dado serán eliminadas del output final.
 - **Restricción TCS**: Los componentes opcionales provenientes del `TCS SC` ahora aplican única y exclusivamente a `Europe`, `Poland`, `Germany` y `Turkey`.

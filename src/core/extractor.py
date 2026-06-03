@@ -69,7 +69,7 @@ COMPONENTS_GLOBAL = [
     "Option hybrid tower: MB Monthly Cost Indexation",
     "Option hybrid tower: white coating of concrete part",
     "Option hybrid tower: no red stripe on concrete part",
-    "Fire Detection System",
+    "Option Fire Detection System",
 ]
 
 COMPONENT_NAME_MAP = {
@@ -374,7 +374,7 @@ def run_extraction(
                 }
         elif "fire detection system" in val5.lower():
             col_map[col] = {
-                "component": "Fire Detection System",
+                "component": "Option Fire Detection System",
                 "year": None,
                 "currency_type": 1,
                 "region": None,
@@ -565,7 +565,7 @@ def run_extraction(
         elif "fire detection system" in val_clean.lower():
             tcs_col_map[col] = {
                 "type": "global",
-                "component": "Fire Detection System"
+                "component": "Option Fire Detection System"
             }
         elif "steel tower quality inspectors" in val_clean.lower():
             r3_val = header_rows[3].get(col)
