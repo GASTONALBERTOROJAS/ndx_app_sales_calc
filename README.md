@@ -48,6 +48,10 @@ No necesitas instalar Python ni ningún programa adicional.
 - **Limpieza Automática**: Las torres que se queden en blanco (o con un 0 automático) para ambas monedas en un componente dado serán eliminadas del output final.
 - **Restricción TCS**: Los componentes opcionales provenientes del `TCS SC` ahora aplican única y exclusivamente a `Europe`, `Poland`, `Germany` y `Turkey`.
 - **Evasión de Encabezados Dinámicos**: Se previno el error donde falsas torres llamadas `"Key"` (por la coincidencia de nombres de los encabezados) se añadían a los datos.
+- **Opcionales Canadienses**: Se añadieron los opcionales `Service Lift 60 Hz Canada` y `MV Cables Canada/US- CSA/UL Std` para los proyectos canadienses en la región `Canada`.
+- **Expansión Regional de USA**: Los componentes opcionales marcados con región `US` ahora se duplican automáticamente también para las plantas `Arcosa US` y `CS Wind US`.
+- **Costes Únicos y Límite de Bloques**: Se ajustó la lógica en TCS SC para ignorar bloques duplicados de referencia o de diferencias (ej. v26.1), garantizando que se extrae un único coste (v26.2). Además, se ampliaron los límites de lectura en TS SC para no dejar atrás datos como los de CS Wind US 2028.
+- **Exclusividad para Alemania**: La opción global `Option Anchor Cage: German requirements for NAT AC` está ahora restringida de manera exclusiva para la región `Germany`.
 
 ---
 

@@ -319,8 +319,8 @@ def run_extraction(
 
     col_map = {}
     for col, val in row_data[3].items():
-        # Ignore comparison/history blocks (which start at column index 258)
-        if col >= 258:
+        # Ignore comparison/history blocks (which start around column index 262)
+        if col >= 262:
             continue
 
         parsed = parse_row3_value(str(val))
@@ -354,7 +354,7 @@ def run_extraction(
         }
 
     # Manual mapping for Canadian Projects in TS SC (from Rows 5 and 6)
-    for col in range(1, 258):
+    for col in range(1, 262):
         val5 = str(row_data[5].get(col) or "").strip()
         val6 = str(row_data[6].get(col) or "").strip()
         if val6.lower() == "canadian projects":
@@ -415,8 +415,11 @@ def run_extraction(
                 years_to_emit = [meta["year"]]
 
             if meta["region"] is None:
-                # Exclude 'Canada' for global components unless explicitly specified
-                regions_to_emit = [r for r in canonical_regions if r != "Canada"]
+                if meta["component"] == "Option Anchor Cage: German requirements for NAT AC":
+                    regions_to_emit = ["Germany"]
+                else:
+                    # Exclude 'Canada' for global components unless explicitly specified
+                    regions_to_emit = [r for r in canonical_regions if r != "Canada"]
             else:
                 regions_to_emit = [meta["region"]]
                 # Optionals for US also apply to Arcosa US and CS Wind US
@@ -511,8 +514,16 @@ def run_extraction(
     block_starts.sort(key=lambda x: x[0])
 
     # Assign columns to blocks and map components
+    seen_blocks = set()
     for i, (start_col, region, year) in enumerate(block_starts):
+        # Determine the end column of this block based on the NEXT block's start column
         end_col = block_starts[i+1][0] if i + 1 < len(block_starts) else start_col + 20
+        
+        # Only process the first occurrence of a (region, year) block
+        block_key = (region, year)
+        if block_key in seen_blocks:
+            continue
+        seen_blocks.add(block_key)
         
         for col in range(start_col, end_col):
             cell_val = header_rows[5].get(col)
