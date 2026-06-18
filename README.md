@@ -55,6 +55,32 @@ No necesitas instalar Python ni ningún programa adicional.
 
 ---
 
+## 🚀 Pipeline de Base de Datos (PostgreSQL)
+
+La herramienta ahora cuenta con un flujo de orquestación de datos *"End-to-End"* hacia PostgreSQL. Cada vez que extraes datos, el sistema ejecuta de manera silenciosa las siguientes etapas:
+
+### 1. Ingesta de Datos (`01_ingesta`)
+- Los datos crudos generados por la extracción se insertan automáticamente en la base de datos PostgreSQL (`powerbi_reports`), dentro del esquema `01_ingesta`.
+- La tabla temporal del día (ej. `salescalc_tower_20260618`) se sobreescribe cada vez que lanzas la app, garantizando que siempre haya **una única tabla vigente** con los datos más frescos.
+
+### 2. Procesamiento y Entrega (`03_entrega`)
+Tras la ingesta, el pipeline dispara dos rutinas de procesamiento que recogen la data cruda y generan tablas definitivas listas para el consumo en el esquema `03_entrega`:
+
+- **Tabla para Ventas (`salescalc_tower_sales`)**:
+  - Filtra columnas innecesarias y estandariza las monedas.
+  - Formato estricto: `Year_Production` (INTEGER) y `Cost_Currency` (DECIMAL 10,2).
+
+- **Tabla para Power BI (`tower_powerbi`)**:
+  - Combina "Tower Shell" y "Tower Internals" sumando sus costes.
+  - Aplica factor de conversión (1 EUR = 1.15 USD) a la segunda moneda para generar un `Total Cost Consolidated (Euro)`.
+  - Genera cálculos matemáticos avanzados (`Total Weight (tons)`, ratios `EUR/Ton`, `EUR/m`, `EUR/Sección`).
+  - Elimina automáticamente cualquier fila con un Coste Total igual a 0.
+  - Ordena de forma visual las columnas y fuerza los tipos de datos a `NUMERIC(10,2)` de forma estricta.
+
+Gracias a este pipeline, **basta con actualizar tus informes de Power BI Desktop**, y automáticamente absorberán los registros consolidados y perfectamente limpios.
+
+---
+
 ## Alternativa: Ejecutar con Python (para usuarios avanzados)
 
 Si tienes Python 3.10+ instalado:
@@ -72,10 +98,11 @@ ndx_app_sales_calc/
 ├── src/                ← Código fuente
 │   ├── main.py         ← Aplicación principal (interfaz gráfica)
 │   └── core/           ← Módulos de lógica y procesamiento
-│       ├── extractor.py    ← Extracción de datos desde Excel
-│       ├── verifier.py     ← Verificación del output
-│       ├── gap_analyzer.py ← Análisis de gaps (filas sin costo)
-│       └── paths.py        ← Utilidades de rutas (compatible con .exe)
+│       ├── extractor.py       ← Extracción de datos y orquestación del pipeline
+│       ├── ingest_sql.py      ← Volcado a PostgreSQL (01_ingesta)
+│       ├── process_sales.py   ← ETL para Ventas (03_entrega)
+│       ├── process_powerbi.py ← ETL para Power BI con ratios y cálculos (03_entrega)
+│       └── paths.py           ← Utilidades de rutas (compatible con .exe)
 ├── config.json         ← Configuración de hojas y regiones
 ├── input_source/       ← Coloca aquí el archivo Excel de entrada
 ├── output/             ← Los resultados se guardan aquí por defecto

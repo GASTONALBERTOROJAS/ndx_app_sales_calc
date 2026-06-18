@@ -297,8 +297,8 @@ def run_extraction(
 
     # ---- Step 1: Build column map from rows 1-3 and 7 ----------------------
     _progress(12, "Leyendo encabezados...")
-    row_data = {1: {}, 2: {}, 3: {}, 5: {}, 6: {}, 7: {}}
-    for row in ws.iter_rows(min_row=1, max_row=7):
+    row_data = {1: {}, 2: {}, 3: {}, 5: {}, 6: {}, 7: {}, 8: {}}
+    for row in ws.iter_rows(min_row=1, max_row=8):
         for c in row:
             try:
                 col = c.column
@@ -379,6 +379,21 @@ def run_extraction(
                 "currency_type": 1,
                 "region": None,
             }
+            
+    # Find static columns dynamically
+    static_cols_ts = {}
+    for col in range(1, 30):
+        val8 = str(row_data[8].get(col) or "").strip().lower()
+        if "type + height" in val8:
+            static_cols_ts["Type + Height"] = col
+        elif "sections" == val8:
+            static_cols_ts["Sections"] = col
+        elif "plates weight\nnet" in val8 or "plates weight net" in val8:
+            static_cols_ts["Plates Weight net"] = col
+        elif "plates weight gross" in val8:
+            static_cols_ts["Plates Weight gross"] = col
+        elif "weight flanges" in val8:
+            static_cols_ts["weight flanges"] = col
 
     _progress(30, f"Identificadas {len(col_map)} columnas objetivo")
 
@@ -400,6 +415,21 @@ def run_extraction(
             continue
 
         brand = row_vals.get(5)
+        
+        type_height_raw = str(row_vals.get(static_cols_ts.get("Type + Height", -1)) or "").strip()
+        type_val = None
+        height_val = None
+        if type_height_raw:
+            m = re.search(r"(TCS|TS)\s*(\d+)", type_height_raw, re.IGNORECASE)
+            if m:
+                type_val = m.group(1).upper()
+                height_val = int(m.group(2))
+
+        sections = row_vals.get(static_cols_ts.get("Sections", -1))
+        plates_weight_net = row_vals.get(static_cols_ts.get("Plates Weight net", -1))
+        plates_weight_gross = row_vals.get(static_cols_ts.get("Plates Weight gross", -1))
+        weight_flanges = row_vals.get(static_cols_ts.get("weight flanges", -1))
+
         row_count += 1
 
         for col, meta in col_map.items():
@@ -433,6 +463,12 @@ def run_extraction(
                         "Component": meta["component"],
                         "Key": key,
                         "Brand": brand,
+                        "Type": type_val,
+                        "Height": height_val,
+                        "Sections": sections,
+                        "Plates Weight net": plates_weight_net,
+                        "Plates Weight gross": plates_weight_gross,
+                        "weight flanges": weight_flanges,
                         "Year_Production": yr,
                         "Region": rgn,
                         "currency_type": meta["currency_type"],
@@ -478,6 +514,21 @@ def run_extraction(
     if not brand_col:
         # Fallback to column C (3) if not found explicitly
         brand_col = 3
+
+    # Find static columns dynamically in TCS SC
+    static_cols_tcs = {}
+    for col in range(1, 30):
+        val5 = str(header_rows[5].get(col) or "").strip().lower()
+        if "type + height" in val5:
+            static_cols_tcs["Type + Height"] = col
+        elif "sections" == val5:
+            static_cols_tcs["Sections"] = col
+        elif "plates weight\nnet" in val5 or "plates weight net" in val5:
+            static_cols_tcs["Plates Weight net"] = col
+        elif "plates weight gross" in val5:
+            static_cols_tcs["Plates Weight gross"] = col
+        elif "weight flanges" in val5:
+            static_cols_tcs["weight flanges"] = col
 
     # 2. Parse the Region + Year block columns from Row 3 (or Row 4) and Row 5
     # Standard components we expect to extract
@@ -605,6 +656,20 @@ def run_extraction(
 
         brand = row_vals.get(brand_col) or "Nx"
         tcs_row_count += 1
+        
+        type_height_raw = str(row_vals.get(static_cols_tcs.get("Type + Height", -1)) or "").strip()
+        type_val = None
+        height_val = None
+        if type_height_raw:
+            m = re.search(r"(TCS|TS)\s*(\d+)", type_height_raw, re.IGNORECASE)
+            if m:
+                type_val = m.group(1).upper()
+                height_val = int(m.group(2))
+
+        sections = row_vals.get(static_cols_tcs.get("Sections", -1))
+        plates_weight_net = row_vals.get(static_cols_tcs.get("Plates Weight net", -1))
+        plates_weight_gross = row_vals.get(static_cols_tcs.get("Plates Weight gross", -1))
+        weight_flanges = row_vals.get(static_cols_tcs.get("weight flanges", -1))
 
         for col, meta in tcs_col_map.items():
             raw_val = row_vals.get(col)
@@ -620,6 +685,12 @@ def run_extraction(
                         "Component": meta["component"],
                         "Key": key,
                         "Brand": brand,
+                        "Type": type_val,
+                        "Height": height_val,
+                        "Sections": sections,
+                        "Plates Weight net": plates_weight_net,
+                        "Plates Weight gross": plates_weight_gross,
+                        "weight flanges": weight_flanges,
                         "Year_Production": meta["year"],
                         "Region": meta["region"],
                         "currency_type": 1,
@@ -638,6 +709,12 @@ def run_extraction(
                             "Component": meta["component"],
                             "Key": key,
                             "Brand": brand,
+                            "Type": type_val,
+                            "Height": height_val,
+                            "Sections": sections,
+                            "Plates Weight net": plates_weight_net,
+                            "Plates Weight gross": plates_weight_gross,
+                            "weight flanges": weight_flanges,
                             "Year_Production": yr,
                             "Region": rgn,
                             "currency_type": 1,
@@ -656,6 +733,12 @@ def run_extraction(
                             "Component": meta["component"],
                             "Key": key,
                             "Brand": brand,
+                            "Type": type_val,
+                            "Height": height_val,
+                            "Sections": sections,
+                            "Plates Weight net": plates_weight_net,
+                            "Plates Weight gross": plates_weight_gross,
+                            "weight flanges": weight_flanges,
                             "Year_Production": yr,
                             "Region": rgn,
                             "currency_type": 1,
@@ -679,6 +762,7 @@ def run_extraction(
 
     merge_keys = [
         "Component_Category", "Component", "Key", "Brand",
+        "Type", "Height", "Sections", "Plates Weight net", "Plates Weight gross", "weight flanges",
         "Year_Production", "Region",
     ]
 
@@ -692,14 +776,26 @@ def run_extraction(
 
     output_cols = [
         "Component_Category", "Component", "Key", "Brand",
+        "Type", "Height", "Sections", "Plates Weight net", "Plates Weight gross", "weight flanges",
         "Year_Production", "Region", "Cost_Currency1", "Cost_Currency2",
     ]
     df_final = df_final[output_cols].sort_values(
         by=["Component", "Year_Production", "Region", "Key"]
     ).reset_index(drop=True)
 
-    _progress(95, f"Escribiendo {len(df_final):,} filas a {output_path}...")
-    df_final.to_excel(str(output_path), index=False, sheet_name="Tower_Extracted")
+    _progress(95, f"Enviando {len(df_final):,} filas a SQL (esquema 01_ingesta)...")
+    from src.core.ingest_sql import ingest_to_sql
+    ingest_to_sql(df_final, str(input_path), log_callback=lambda msg: _progress(95, msg))
+
+    _progress(97, "Ejecutando procesamiento de capas finales (Ventas y PowerBI)...")
+    from src.core.process_powerbi import process_powerbi_table
+    from src.core.process_sales import process_sales_table
+    try:
+        process_sales_table()
+        process_powerbi_table()
+        _progress(98, "Tablas generadas exitosamente en el esquema 03_entrega.")
+    except Exception as e:
+        _progress(98, f"ERROR al generar tablas finales: {e}")
 
     _progress(100, "Completado")
 
