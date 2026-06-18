@@ -459,7 +459,7 @@ def run_extraction(
             for yr in years_to_emit:
                 for rgn in regions_to_emit:
                     records.append({
-                        "Component_Category": "Tower",
+                        "Component_Category": "Optionals" if "option" in meta["component"].lower() else "Tower",
                         "Component": meta["component"],
                         "Key": key,
                         "Brand": brand,
@@ -681,7 +681,7 @@ def run_extraction(
             if meta["type"] == "block":
                 if meta["year"] in TARGET_YEARS:
                     tcs_records.append({
-                        "Component_Category": "Tower",
+                        "Component_Category": "Optionals" if "option" in meta["component"].lower() else "Tower",
                         "Component": meta["component"],
                         "Key": key,
                         "Brand": brand,
@@ -705,7 +705,7 @@ def run_extraction(
                 for yr in TARGET_YEARS:
                     for rgn in global_regions:
                         tcs_records.append({
-                            "Component_Category": "Tower",
+                            "Component_Category": "Optionals" if "option" in meta["component"].lower() else "Tower",
                             "Component": meta["component"],
                             "Key": key,
                             "Brand": brand,
@@ -729,7 +729,7 @@ def run_extraction(
                 for yr in TARGET_YEARS:
                     for rgn in regions_to_emit:
                         tcs_records.append({
-                            "Component_Category": "Tower",
+                            "Component_Category": "Optionals" if "option" in meta["component"].lower() else "Tower",
                             "Component": meta["component"],
                             "Key": key,
                             "Brand": brand,
