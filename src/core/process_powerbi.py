@@ -33,16 +33,8 @@ def process_powerbi_table():
     query = f'SELECT * FROM "01_ingesta"."{source_table}"'
     df = pd.read_sql(query, con=engine)
     
-    # 2. Filtrar Componentes base de la torre (TS y TCS)
-    base_components = [
-        "Tower Shell", 
-        "Tower Internals", 
-        "Concrete Tower Keystones + Internals", 
-        "Foundations", 
-        "Concrete Tower Logistics", 
-        "Concrete Tower C&I"
-    ]
-    df = df[df["Component"].isin(base_components)].copy()
+    # 2. Filtrar Componentes
+    df = df[df["Component"].isin(["Tower Shell", "Tower Internals"])].copy()
     
     # 3. Eliminar columnas que no van o impiden agrupar
     cols_to_drop = ["Component", "Component_Category", "Brand"]
@@ -67,7 +59,7 @@ def process_powerbi_table():
             
     # Agrupar por las columnas estáticas de la torre para tener 1 fila por torre
     group_cols = [c for c in df.columns if c not in ["Cost_Currency1", "Cost_Currency2"]]
-    df = df.groupby(group_cols, as_index=False, dropna=False)[["Cost_Currency1", "Cost_Currency2"]].sum()
+    df = df.groupby(group_cols, as_index=False)[["Cost_Currency1", "Cost_Currency2"]].sum()
     
     # Renombrar columnas
     rename_map = {
@@ -99,10 +91,6 @@ def process_powerbi_table():
     df["Sections"] = df["Sections"].astype(int)
     df["Year_Production"] = df["Year_Production"].astype(int)
     
-    if "Platform" in df.columns:
-        df["Platform"] = df["Platform"].astype(str).str.replace(r"^D3000$", "Delta3000", regex=True)
-        df["Platform"] = df["Platform"].replace({"None": None, "nan": None, "<NA>": None})
-
     # Los decimales de los pesos y costos se mantienen con su precisión original
     # para que los cálculos de PowerBI cuadren exacto con los del Excel original.
             
@@ -186,7 +174,7 @@ def process_powerbi_table():
     target_table = "tower_powerbi"
     print(f"Escribiendo {len(df)} filas procesadas en 03_entrega.{target_table}...")
     
-    from sqlalchemy.types import Numeric, Integer, String, Text
+    from sqlalchemy.types import Numeric, Integer, Text
     dtype_mapping = {
         "Platform": Text(),
         "Tower Height": Integer(),
