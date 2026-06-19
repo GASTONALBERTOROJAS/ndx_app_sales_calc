@@ -394,6 +394,8 @@ def run_extraction(
             static_cols_ts["Plates Weight gross"] = col
         elif "weight flanges" in val8:
             static_cols_ts["weight flanges"] = col
+        elif "platform" in val8:
+            static_cols_ts["Platform"] = col
 
     _progress(30, f"Identificadas {len(col_map)} columnas objetivo")
 
@@ -429,6 +431,7 @@ def run_extraction(
         plates_weight_net = row_vals.get(static_cols_ts.get("Plates Weight net", -1))
         plates_weight_gross = row_vals.get(static_cols_ts.get("Plates Weight gross", -1))
         weight_flanges = row_vals.get(static_cols_ts.get("weight flanges", -1))
+        platform = row_vals.get(static_cols_ts.get("Platform", -1))
 
         row_count += 1
 
@@ -469,6 +472,7 @@ def run_extraction(
                         "Plates Weight net": plates_weight_net,
                         "Plates Weight gross": plates_weight_gross,
                         "weight flanges": weight_flanges,
+                        "Platform": platform,
                         "Year_Production": yr,
                         "Region": rgn,
                         "currency_type": meta["currency_type"],
@@ -529,6 +533,8 @@ def run_extraction(
             static_cols_tcs["Plates Weight gross"] = col
         elif "weight flanges" in val5:
             static_cols_tcs["weight flanges"] = col
+        elif "platform" in val5:
+            static_cols_tcs["Platform"] = col
 
     # 2. Parse the Region + Year block columns from Row 3 (or Row 4) and Row 5
     # Standard components we expect to extract
@@ -670,6 +676,7 @@ def run_extraction(
         plates_weight_net = row_vals.get(static_cols_tcs.get("Plates Weight net", -1))
         plates_weight_gross = row_vals.get(static_cols_tcs.get("Plates Weight gross", -1))
         weight_flanges = row_vals.get(static_cols_tcs.get("weight flanges", -1))
+        platform = row_vals.get(static_cols_tcs.get("Platform", -1))
 
         for col, meta in tcs_col_map.items():
             raw_val = row_vals.get(col)
@@ -691,6 +698,7 @@ def run_extraction(
                         "Plates Weight net": plates_weight_net,
                         "Plates Weight gross": plates_weight_gross,
                         "weight flanges": weight_flanges,
+                        "Platform": platform,
                         "Year_Production": meta["year"],
                         "Region": meta["region"],
                         "currency_type": 1,
@@ -715,6 +723,7 @@ def run_extraction(
                             "Plates Weight net": plates_weight_net,
                             "Plates Weight gross": plates_weight_gross,
                             "weight flanges": weight_flanges,
+                            "Platform": platform,
                             "Year_Production": yr,
                             "Region": rgn,
                             "currency_type": 1,
@@ -739,6 +748,7 @@ def run_extraction(
                             "Plates Weight net": plates_weight_net,
                             "Plates Weight gross": plates_weight_gross,
                             "weight flanges": weight_flanges,
+                            "Platform": platform,
                             "Year_Production": yr,
                             "Region": rgn,
                             "currency_type": 1,
@@ -761,7 +771,7 @@ def run_extraction(
     df_c2 = df[df["currency_type"] == 2].rename(columns={"value": "Cost_Currency2"})
 
     merge_keys = [
-        "Component_Category", "Component", "Key", "Brand",
+        "Component_Category", "Component", "Key", "Brand", "Platform",
         "Type", "Height", "Sections", "Plates Weight net", "Plates Weight gross", "weight flanges",
         "Year_Production", "Region",
     ]
@@ -775,7 +785,7 @@ def run_extraction(
     df_final["Cost_Currency2"] = df_final["Cost_Currency2"].fillna(0)
 
     output_cols = [
-        "Component_Category", "Component", "Key", "Brand",
+        "Component_Category", "Component", "Key", "Brand", "Platform",
         "Type", "Height", "Sections", "Plates Weight net", "Plates Weight gross", "weight flanges",
         "Year_Production", "Region", "Cost_Currency1", "Cost_Currency2",
     ]

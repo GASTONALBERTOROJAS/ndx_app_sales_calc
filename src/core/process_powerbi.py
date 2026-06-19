@@ -148,6 +148,7 @@ def process_powerbi_table():
     # 8. Reordenar columnas y eliminar Cost_Currency1 y Cost_Currency2
     final_cols = [
         "Full Tower Name",
+        "Platform",
         "Categoría",
         "Tower Type",
         "Tower Height",
@@ -175,6 +176,7 @@ def process_powerbi_table():
     
     from sqlalchemy.types import Numeric, Integer, String
     dtype_mapping = {
+        "Platform": String(),
         "Tower Height": Integer(),
         "Sections": Integer(),
         "Year_Production": Integer(),
