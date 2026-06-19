@@ -33,8 +33,16 @@ def process_powerbi_table():
     query = f'SELECT * FROM "01_ingesta"."{source_table}"'
     df = pd.read_sql(query, con=engine)
     
-    # 2. Filtrar Componentes
-    df = df[df["Component"].isin(["Tower Shell", "Tower Internals"])].copy()
+    # 2. Filtrar Componentes base de la torre (TS y TCS)
+    base_components = [
+        "Tower Shell", 
+        "Tower Internals", 
+        "Concrete Tower Keystones + Internals", 
+        "Foundations", 
+        "Concrete Tower Logistics", 
+        "Concrete Tower C&I"
+    ]
+    df = df[df["Component"].isin(base_components)].copy()
     
     # 3. Eliminar columnas que no van o impiden agrupar
     cols_to_drop = ["Component", "Component_Category", "Brand"]
@@ -59,7 +67,7 @@ def process_powerbi_table():
             
     # Agrupar por las columnas estáticas de la torre para tener 1 fila por torre
     group_cols = [c for c in df.columns if c not in ["Cost_Currency1", "Cost_Currency2"]]
-    df = df.groupby(group_cols, as_index=False)[["Cost_Currency1", "Cost_Currency2"]].sum()
+    df = df.groupby(group_cols, as_index=False, dropna=False)[["Cost_Currency1", "Cost_Currency2"]].sum()
     
     # Renombrar columnas
     rename_map = {
