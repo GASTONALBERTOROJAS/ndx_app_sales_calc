@@ -145,8 +145,12 @@ def process_powerbi_table():
         if col in df.columns:
             df[col] = df[col].round(2)
             
-    # 8. Reordenar columnas y eliminar Cost_Currency1 y Cost_Currency2
+    # 8. Crear Identificador Único para Power BI
+    df["Unique ID"] = df["Full Tower Name"].astype(str) + " | " + df["Region"].astype(str) + " | " + df["Year_Production"].astype(int).astype(str)
+    
+    # 9. Reordenar columnas y eliminar Cost_Currency1 y Cost_Currency2
     final_cols = [
+        "Unique ID",
         "Full Tower Name",
         "Platform",
         "Categoría",
@@ -176,6 +180,7 @@ def process_powerbi_table():
     
     from sqlalchemy.types import Numeric, Integer, Text
     dtype_mapping = {
+        "Unique ID": Text(),
         "Platform": Text(),
         "Tower Height": Integer(),
         "Sections": Integer(),
