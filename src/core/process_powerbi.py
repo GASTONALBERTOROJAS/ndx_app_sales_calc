@@ -91,6 +91,10 @@ def process_powerbi_table():
     df["Sections"] = df["Sections"].astype(int)
     df["Year_Production"] = df["Year_Production"].astype(int)
     
+    if "Platform" in df.columns:
+        df["Platform"] = df["Platform"].astype(str).str.replace(r"^D3000$", "Delta3000", regex=True)
+        df["Platform"] = df["Platform"].replace({"None": None, "nan": None, "<NA>": None})
+
     # Los decimales de los pesos y costos se mantienen con su precisión original
     # para que los cálculos de PowerBI cuadren exacto con los del Excel original.
             
@@ -174,9 +178,9 @@ def process_powerbi_table():
     target_table = "tower_powerbi"
     print(f"Escribiendo {len(df)} filas procesadas en 03_entrega.{target_table}...")
     
-    from sqlalchemy.types import Numeric, Integer, String
+    from sqlalchemy.types import Numeric, Integer, String, Text
     dtype_mapping = {
-        "Platform": String(),
+        "Platform": Text(),
         "Tower Height": Integer(),
         "Sections": Integer(),
         "Year_Production": Integer(),

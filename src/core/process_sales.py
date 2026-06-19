@@ -57,6 +57,11 @@ def process_sales_table():
     df["Cost_Currency1"] = df["Cost_Currency1"].apply(clean_cost).round(2)
     df["Cost_Currency2"] = df["Cost_Currency2"].apply(clean_cost).round(2)
     
+    if "Platform" in df.columns:
+        df["Platform"] = df["Platform"].astype(str).str.replace(r"^D3000$", "Delta3000", regex=True)
+        # Limpiar posibles nulos que se convirtieron a string "None" o "nan"
+        df["Platform"] = df["Platform"].replace({"None": None, "nan": None, "<NA>": None})
+    
     # Asegurarnos de usar tipos adecuados para SQL mediante diccionarios si fuera necesario, 
     # pero pandas to_sql infiere float e int automáticamente.
     
@@ -68,8 +73,9 @@ def process_sales_table():
     target_table = "salescalc_tower_sales"
     print(f"Escribiendo {len(df)} filas procesadas en 03_entrega.{target_table}...")
     
-    from sqlalchemy.types import Numeric, Integer
+    from sqlalchemy.types import Numeric, Integer, Text
     dtype_mapping = {
+        "Platform": Text(),
         "Year_Production": Integer(),
         "Cost_Currency1": Numeric(10, 2),
         "Cost_Currency2": Numeric(10, 2)
