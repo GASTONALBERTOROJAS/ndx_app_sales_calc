@@ -105,22 +105,22 @@ def process_powerbi_table():
     # Total Weight (tons)
     df["Total Weight (tons)"] = df["Plates Weight net"] + df["weight flanges"]
     
-    # Categoría
+    # Category
     def get_category(row):
         t_type = str(row["Tower Type"]).strip().upper()
         h = row["Tower Height"]
         if t_type == "TCS":
-            return "Híbrida"
+            return "Hibrid Towers"
         elif t_type == "TS":
             if h <= 120:
-                return "Acero <= 120m"
+                return "TS <= 120M"
             elif h <= 148:
-                return "Acero 120m - 148m"
+                return "TS 120M - 148M"
             else:
-                return "Acero > 148m"
-        return "Otro"
+                return "TS > 148M"
+        return "Other"
         
-    df["Categoría"] = df.apply(get_category, axis=1)
+    df["Category"] = df.apply(get_category, axis=1)
     
     # Ratios (manejando división por cero)
     df["Ratio EUR/Ton"] = np.where(df["Total Weight (tons)"] > 0, 
@@ -145,15 +145,11 @@ def process_powerbi_table():
         if col in df.columns:
             df[col] = df[col].round(2)
             
-    # 8. Crear Identificador Único para Power BI
-    df["Unique ID"] = df["Full Tower Name"].astype(str) + " | " + df["Region"].astype(str) + " | " + df["Year_Production"].astype(int).astype(str)
-    
-    # 9. Reordenar columnas y eliminar Cost_Currency1 y Cost_Currency2
+    # 8. Reordenar columnas y eliminar Cost_Currency1 y Cost_Currency2
     final_cols = [
-        "Unique ID",
         "Full Tower Name",
         "Platform",
-        "Categoría",
+        "Category",
         "Tower Type",
         "Tower Height",
         "Sections",
@@ -180,7 +176,6 @@ def process_powerbi_table():
     
     from sqlalchemy.types import Numeric, Integer, Text
     dtype_mapping = {
-        "Unique ID": Text(),
         "Platform": Text(),
         "Tower Height": Integer(),
         "Sections": Integer(),
