@@ -3,7 +3,7 @@ import pandas as pd
 from sqlalchemy import create_engine, inspect, text
 from dotenv import load_dotenv
 
-def process_sales_table():
+def process_materials_table():
     load_dotenv()
     
     db_user = os.getenv("DB_USER", "postgres")
@@ -32,26 +32,22 @@ def process_sales_table():
     query = f'SELECT * FROM "01_ingesta"."{source_table}"'
     df = pd.read_sql(query, con=engine)
     
-    # 2. Eliminar columnas no deseadas para el equipo de ventas
+    # 2. Filtrar SOLO los componentes de materiales
+    materials_to_include = [
+        "Steel Plates", "Flanges", "Conversion", "Thereof Damper", "Thereof D4K-cable"
+    ]
+    df = df[df["Component"].isin(materials_to_include)].copy()
+    
+    # 3. Eliminar columnas no deseadas (mismo formato que salescalc_tower_sales)
     cols_to_drop = [
         "Type", "Height", "Sections", 
         "Plates Weight net", "Plates Weight gross", "weight flanges"
     ]
     df = df.drop(columns=[c for c in cols_to_drop if c in df.columns], errors="ignore")
     
-    # Excluir componentes de materiales para mantener la tabla de ventas original intacta
-    materials_to_exclude = [
-        "Steel Plates", "Flanges", "Conversion", "Thereof Damper", "Thereof D4K-cable"
-    ]
-    df = df[~df["Component"].isin(materials_to_exclude)].copy()
-    
-    # 3. Limpieza y conversión de tipos
-    # Las columnas de texto ya son texto (Component_Category, Component, Key, Brand, Region)
-    
-    # - Year_Production (convertir a integer)
+    # 4. Limpieza y conversión de tipos
     df["Year_Production"] = pd.to_numeric(df["Year_Production"], errors="coerce").fillna(0).astype(int)
     
-    # - Cost_Currency1 y Cost_Currency2 (decimal 10,1, reemplazar N/A por 0)
     def clean_cost(val):
         if pd.isna(val) or str(val).strip() in ["N/A", "None", "nan", "<NA>", ""]:
             return 0.0
@@ -63,15 +59,12 @@ def process_sales_table():
     df["Cost_Currency1"] = df["Cost_Currency1"].apply(clean_cost).round(2)
     df["Cost_Currency2"] = df["Cost_Currency2"].apply(clean_cost).round(2)
     
-    # Asegurarnos de usar tipos adecuados para SQL mediante diccionarios si fuera necesario, 
-    # pero pandas to_sql infiere float e int automáticamente.
-    
-    # 4. Crear esquema 03_entrega si no existe
+    # 5. Crear esquema 03_entrega si no existe
     with engine.begin() as conn:
         conn.execute(text('CREATE SCHEMA IF NOT EXISTS "03_entrega"'))
         
-    # 5. Guardar la tabla procesada
-    target_table = "salescalc_tower_sales"
+    # 6. Guardar la tabla procesada
+    target_table = "tower_materials"
     print(f"Escribiendo {len(df)} filas procesadas en 03_entrega.{target_table}...")
     
     from sqlalchemy.types import Numeric, Integer, Text
@@ -86,12 +79,12 @@ def process_sales_table():
         name=target_table,
         con=engine,
         schema="03_entrega",
-        if_exists="replace", # Reemplazará la vista de ventas cada vez que se ejecute
+        if_exists="replace", 
         index=False,
         dtype=dtype_mapping
     )
     
-    print("Tabla para el equipo de ventas creada y procesada exitosamente en 03_entrega.")
+    print("Tabla para materiales creada y procesada exitosamente en 03_entrega.")
 
 if __name__ == "__main__":
-    process_sales_table()
+    process_materials_table()
