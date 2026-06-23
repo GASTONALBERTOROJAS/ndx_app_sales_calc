@@ -32,11 +32,7 @@ def process_materials_table():
     query = f'SELECT * FROM "01_ingesta"."{source_table}"'
     df = pd.read_sql(query, con=engine)
     
-    # 2. Filtrar SOLO los componentes de materiales
-    materials_to_include = [
-        "Steel Plates", "Flanges", "Conversion", "Thereof Damper", "Thereof D4K-cable"
-    ]
-    df = df[df["Component"].isin(materials_to_include)].copy()
+    # 2. No filtramos componentes, queremos que tower_materials tenga TODOS los componentes (antiguos + nuevos)
     
     # 3. Eliminar columnas no deseadas (mismo formato que salescalc_tower_sales)
     cols_to_drop = [
