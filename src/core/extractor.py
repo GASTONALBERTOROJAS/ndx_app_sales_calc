@@ -817,9 +817,9 @@ def run_extraction(
     from src.core.process_materials import process_materials_table
     
     try:
-        process_powerbi_table(output_path, log_callback=lambda msg: _progress(98, msg))
-        process_sales_table(output_path, log_callback=lambda msg: _progress(99, msg))
-        process_materials_table(output_path, log_callback=lambda msg: _progress(100, msg))
+        process_sales_table()
+        process_powerbi_table()
+        process_materials_table()
         _progress(100, "Tablas generadas exitosamente en el esquema 03_entrega.")
     except Exception as e:
         _progress(98, f"ERROR al generar tablas finales: {e}")
