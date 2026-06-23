@@ -390,6 +390,30 @@ def run_extraction(
                 "region": None,
             }
             
+    # Parse TS SC Material blocks from rows 6 and 8
+    current_val6 = ""
+    for col in range(200, 600):
+        # Update current merged header if present
+        v6 = str(row_data[6].get(col) or "").strip()
+        if v6:
+            current_val6 = v6
+            
+        val8 = str(row_data[8].get(col) or "").strip().lower()
+        if val8 in ["steel plates", "flanges", "conversion", "thereof damper", "thereof d4k-cable"]:
+            m = re.match(r"^([A-Za-z\s_]+?)\s*(\d{4})$", current_val6)
+            if m:
+                raw_region = m.group(1).strip()
+                year = m.group(2)
+                final_region = normalize_region(raw_region)
+                if final_region and year in TARGET_YEARS:
+                    comp_name = COMPONENT_NAME_MAP.get(val8, val8.title())
+                    col_map[col] = {
+                        "component": comp_name,
+                        "year": year,
+                        "currency_type": 1,
+                        "region": final_region
+                    }
+            
     # Find static columns dynamically
     static_cols_ts = {}
     for col in range(1, 30):
