@@ -57,6 +57,11 @@ COMPONENTS_WITH_YEAR = [
     "Tower bolts set",
     "cbam",
     "Concrete Tower Keystones + Internals",
+    "steel plates",
+    "flanges",
+    "conversion",
+    "thereof damper",
+    "thereof d4k-cable",
 ]
 
 COMPONENTS_REGION_ONLY = [
@@ -78,6 +83,11 @@ COMPONENT_NAME_MAP = {
     "Tower bolts set": "Tower Bolts Set",
     "cbam": "CBAM",
     "Concrete Tower Keystones + Internals": "Concrete Tower Keystones + Internals",
+    "steel plates": "Steel Plates",
+    "flanges": "Flanges",
+    "conversion": "Conversion",
+    "thereof damper": "Thereof Damper",
+    "thereof d4k-cable": "Thereof D4K-cable",
 }
 
 TCS_MB_COMPONENTS = [
@@ -547,7 +557,12 @@ def run_extraction(
         "c&i": "Concrete Tower C&I",
         "ac": "Anchor cage",
         "bolts": "Tower Bolts Set",
-        "cbam": "CBAM"
+        "cbam": "CBAM",
+        "steel plates": "Steel Plates",
+        "flanges": "Flanges",
+        "conversion": "Conversion",
+        "thereof damper": "Thereof Damper",
+        "thereof d4k-cable": "Thereof D4K-cable",
     }
 
     tcs_col_map = {}
@@ -799,10 +814,13 @@ def run_extraction(
     _progress(97, "Ejecutando procesamiento de capas finales (Ventas y PowerBI)...")
     from src.core.process_powerbi import process_powerbi_table
     from src.core.process_sales import process_sales_table
+    from src.core.process_materials import process_materials_table
+    
     try:
-        process_sales_table()
-        process_powerbi_table()
-        _progress(98, "Tablas generadas exitosamente en el esquema 03_entrega.")
+        process_powerbi_table(output_path, log_callback=lambda msg: _progress(98, msg))
+        process_sales_table(output_path, log_callback=lambda msg: _progress(99, msg))
+        process_materials_table(output_path, log_callback=lambda msg: _progress(100, msg))
+        _progress(100, "Tablas generadas exitosamente en el esquema 03_entrega.")
     except Exception as e:
         _progress(98, f"ERROR al generar tablas finales: {e}")
 
