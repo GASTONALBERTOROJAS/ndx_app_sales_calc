@@ -329,8 +329,8 @@ def run_extraction(
 
     col_map = {}
     for col, val in row_data[3].items():
-        # Ignore comparison/history blocks (which start around column index 262)
-        if col >= 262:
+        # Ignore comparison/history blocks (which start at IZ = 260)
+        if col >= 260:
             continue
 
         parsed = parse_row3_value(str(val))
@@ -392,7 +392,7 @@ def run_extraction(
             
     # Parse TS SC Material blocks from rows 6 and 8
     current_val6 = ""
-    for col in range(200, 600):
+    for col in range(1, 260): # Limit to IZ (260) to avoid comparison section
         # Update current merged header if present
         v6 = str(row_data[6].get(col) or "").strip()
         if v6:
