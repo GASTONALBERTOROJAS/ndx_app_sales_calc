@@ -329,7 +329,7 @@ def run_extraction(
 
     col_map = {}
     for col, val in row_data[3].items():
-        # Ignore comparison/history blocks (which start at IZ = 260)
+        # Ignore comparison/history blocks (which start at col 260 / IZ)
         if col >= 260:
             continue
 
@@ -392,7 +392,7 @@ def run_extraction(
             
     # Parse TS SC Material blocks from rows 6 and 8
     current_val6 = ""
-    for col in range(1, 260): # Limit to IZ (260) to avoid comparison section
+    for col in range(1, 260): # Solo hasta 259 para ignorar los bloques de comparación (a partir de IZ, col 260)
         # Update current merged header if present
         v6 = str(row_data[6].get(col) or "").strip()
         if v6:

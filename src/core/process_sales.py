@@ -70,6 +70,12 @@ def process_sales_table():
     with engine.begin() as conn:
         conn.execute(text('CREATE SCHEMA IF NOT EXISTS "03_entrega"'))
         
+    # 4.5 Asegurar que Key sea la primera columna
+    cols = list(df.columns)
+    if "Key" in cols:
+        cols.insert(0, cols.pop(cols.index("Key")))
+        df = df[cols]
+
     # 5. Guardar la tabla procesada
     target_table = "salescalc_tower_sales"
     print(f"Escribiendo {len(df)} filas procesadas en 03_entrega.{target_table}...")
