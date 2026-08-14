@@ -23,7 +23,7 @@ warnings.filterwarnings("ignore", category=FutureWarning, message=".*ChainedAssi
 DEFAULT_CANONICAL_REGIONS = [
     "Europe", "Germany", "Turkey", "Turkey_DOM",
     "Asia", "China", "Poland", "Italy", "Greece", "US",
-    "Arcosa US", "CS Wind US", "Canada"
+    "Arcosa US", "CS Wind US", "Canada", "Marmen US", "Marmen CAN"
 ]
 
 DEFAULT_SHEET_TS = "TS SC v26.2"
@@ -48,6 +48,9 @@ REGION_MAP = {
     "Arcosa(US)": "Arcosa US",
     "CS Wind US": "CS Wind US",
     "CS Wind(US)": "CS Wind US",
+    "Marmen US": "Marmen US",
+    "Marmen CAN": "Marmen CAN",
+    "CAN": "Canada",
 }
 
 COMPONENTS_WITH_YEAR = [
@@ -491,9 +494,12 @@ def run_extraction(
                     regions_to_emit = [r for r in canonical_regions if r != "Canada"]
             else:
                 regions_to_emit = [meta["region"]]
-                # Optionals for US also apply to Arcosa US and CS Wind US
+                # Optionals for US also apply to Arcosa US, CS Wind US, and Marmen US
                 if meta["region"] == "US" and meta["component"].lower() in [c.lower() for c in COMPONENTS_REGION_ONLY]:
-                    regions_to_emit.extend(["Arcosa US", "CS Wind US"])
+                    regions_to_emit.extend(["Arcosa US", "CS Wind US", "Marmen US"])
+                # Optionals for Canada (CAN) apply to Marmen CAN
+                if meta["region"] == "Canada" and meta["component"].lower() in [c.lower() for c in COMPONENTS_REGION_ONLY]:
+                    regions_to_emit.append("Marmen CAN")
 
             for yr in years_to_emit:
                 for rgn in regions_to_emit:
@@ -771,7 +777,9 @@ def run_extraction(
             elif meta["type"] == "region_option":
                 regions_to_emit = [meta["region"]]
                 if meta["region"] == "US":
-                    regions_to_emit.extend(["Arcosa US", "CS Wind US"])
+                    regions_to_emit.extend(["Arcosa US", "CS Wind US", "Marmen US"])
+                if meta["region"] == "Canada":
+                    regions_to_emit.append("Marmen CAN")
                 
                 for yr in TARGET_YEARS:
                     for rgn in regions_to_emit:
