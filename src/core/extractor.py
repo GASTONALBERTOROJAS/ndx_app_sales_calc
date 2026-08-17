@@ -91,6 +91,7 @@ COMPONENT_NAME_MAP = {
     "conversion": "Conversion",
     "thereof damper": "Thereof Damper",
     "thereof d4k-cable": "Thereof D4K-cable",
+    "cbam china": "CBAM",
 }
 
 TCS_MB_COMPONENTS = [
@@ -430,7 +431,7 @@ def run_extraction(
             elif "ac " in val8_clean or val8_clean.startswith("ac"): marmen_comp = "Anchor cage"
             elif "bolts" in val8_clean: marmen_comp = "Tower Bolts Set"
 
-        if val8 in ["steel plates", "flanges", "conversion", "thereof damper", "thereof d4k-cable"] or marmen_comp:
+        if val8 in ["steel plates", "flanges", "conversion", "thereof damper", "thereof d4k-cable", "cbam china"] or marmen_comp:
             m = re.match(r"^([A-Za-z\s_]+?)\s*(\d{4})$", current_val6)
             if m:
                 raw_region = m.group(1).strip()
