@@ -446,7 +446,10 @@ def run_extraction(
                     else:
                         comp_name = COMPONENT_NAME_MAP.get(val8, val8.title())
                         currency_val = str(row_data[7].get(col) or "").strip().upper()
-                        if final_region in ["Asia", "China", "Arcosa US", "CS Wind US", "Marmen US", "Marmen CAN", "US"] or currency_val == "USD":
+                        if currency_val == "EUR":
+                            currency_type = 1
+                        elif currency_val == "USD" or final_region in ["Asia", "China", "Arcosa US", "CS Wind US", "Marmen US", "Marmen CAN", "US"]:
+                            # Default to USD for these regions if Row 7 is empty, but respect explicit EUR
                             currency_type = 2
                         else:
                             currency_type = 1
