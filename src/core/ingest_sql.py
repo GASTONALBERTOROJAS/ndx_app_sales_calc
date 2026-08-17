@@ -21,6 +21,18 @@ def ingest_to_sql(df: pd.DataFrame, source_filename: str, log_callback=None):
     
     df = df.copy()
     
+    # 0. Limpiar filas donde ambas monedas vengan a 0 o N/A
+    def is_zero_or_null(x):
+        return pd.isna(x) or str(x).strip() in ["", "0", "0.0", "N/A", "None", "nan", "<NA>"]
+        
+    if "Cost_Currency1" in df.columns and "Cost_Currency2" in df.columns:
+        mask_c1 = df["Cost_Currency1"].apply(is_zero_or_null)
+        mask_c2 = df["Cost_Currency2"].apply(is_zero_or_null)
+        filas_antes = len(df)
+        df = df[~(mask_c1 & mask_c2)].copy()
+        filas_despues = len(df)
+        _log(f"Filtro aplicado: Eliminadas {filas_antes - filas_despues} filas sin costes (ambas monedas 0).")
+    
     # 1. Convertir TODAS las columnas a TEXT
     # según la regla de "01_ingesta" en generic-sql.md
     for col in df.columns:

@@ -332,8 +332,8 @@ def run_extraction(
 
     col_map = {}
     for col, val in row_data[3].items():
-        # Ignore comparison/history blocks (which start at col 260 / IZ)
-        if col >= 260:
+        # Ignore comparison/history blocks (which start at col 300 / KN in v26.2)
+        if col >= 300:
             continue
 
         parsed = parse_row3_value(str(val))
@@ -359,6 +359,12 @@ def run_extraction(
         if raw_region and final_region is None:
             continue
 
+        val8_opt = str(row_data[8].get(col) or "").strip().lower()
+        if "additional usd" in val8_opt:
+            currency_type = 2
+        elif "additional eur" in val8_opt:
+            currency_type = 1
+
         col_map[col] = {
             "component": component,
             "year": year,
@@ -366,10 +372,12 @@ def run_extraction(
             "region": final_region,
         }
 
-    # Manual mapping for Canadian Projects in TS SC (from Rows 5 and 6)
-    for col in range(1, 262):
+    # Manual mapping for Canadian Projects and CAN Optionals (because Excel Row 3 is messed up for Col 53, 54, 55)
+    for col in range(1, 300):
         val5 = str(row_data[5].get(col) or "").strip()
         val6 = str(row_data[6].get(col) or "").strip()
+        
+        comp_name = None
         if val6.lower() == "canadian projects":
             if "service lift" in val5.lower():
                 comp_name = "Option:Service Lift 60 Hz Canada"
@@ -377,43 +385,74 @@ def run_extraction(
                 comp_name = "Option: MV Cables Canada/US- CSA/UL Std"
             else:
                 comp_name = val5
-            
-            if comp_name:
-                col_map[col] = {
-                    "component": comp_name,
-                    "year": None,
-                    "currency_type": 1,
-                    "region": "Canada",
-                }
+        elif val6.lower() == "souring region can" or (val6.lower() == "option" and "fire detection" in val5.lower() and col == 54):
+            # Col 53 and 54 are Canada Optionals but Row 3 is empty/misplaced
+            comp_name = val5
+            if "quality inspectors" in comp_name.lower():
+                comp_name = "Steel Tower Quality Inspectors"
+            elif "fire detection" in comp_name.lower():
+                comp_name = "Option Fire Detection System"
+
+        if comp_name:
+            val8_opt = str(row_data[8].get(col) or "").strip().lower()
+            c_type = 2 if "additional usd" in val8_opt else 1
+            col_map[col] = {
+                "component": comp_name,
+                "year": None,
+                "currency_type": c_type,
+                "region": "Canada",
+            }
         elif "fire detection system" in val5.lower():
+            val8_opt = str(row_data[8].get(col) or "").strip().lower()
+            c_type = 2 if "additional usd" in val8_opt else 1
             col_map[col] = {
                 "component": "Option Fire Detection System",
                 "year": None,
-                "currency_type": 1,
+                "currency_type": c_type,
                 "region": None,
             }
             
     # Parse TS SC Material blocks from rows 6 and 8
     current_val6 = ""
-    for col in range(1, 260): # Solo hasta 259 para ignorar los bloques de comparación (a partir de IZ, col 260)
+    for col in range(1, 300): # Ampliado a 300 porque en v26.2 los datos llegan hasta la col 298
         # Update current merged header if present
         v6 = str(row_data[6].get(col) or "").strip()
         if v6:
             current_val6 = v6
             
         val8 = str(row_data[8].get(col) or "").strip().lower()
-        if val8 in ["steel plates", "flanges", "conversion", "thereof damper", "thereof d4k-cable"]:
+        val8_clean = val8.replace('\n', ' ')
+        is_marmen_block = "marmen" in val8_clean
+        marmen_comp = None
+        if is_marmen_block:
+            if "tower shell" in val8_clean: marmen_comp = "Tower Shell"
+            elif "internals" in val8_clean: marmen_comp = "Tower Internals"
+            elif "ac " in val8_clean or val8_clean.startswith("ac"): marmen_comp = "Anchor cage"
+            elif "bolts" in val8_clean: marmen_comp = "Tower Bolts Set"
+
+        if val8 in ["steel plates", "flanges", "conversion", "thereof damper", "thereof d4k-cable"] or marmen_comp:
             m = re.match(r"^([A-Za-z\s_]+?)\s*(\d{4})$", current_val6)
             if m:
                 raw_region = m.group(1).strip()
                 year = m.group(2)
                 final_region = normalize_region(raw_region)
                 if final_region and year in TARGET_YEARS:
-                    comp_name = COMPONENT_NAME_MAP.get(val8, val8.title())
+                    if marmen_comp:
+                        comp_name = marmen_comp
+                        currency_val = str(row_data[7].get(col) or "").strip().upper()
+                        # Marmen is always in USD, even if Row 7 is empty (which happens in v26.2 for Marmen US 2028)
+                        currency_type = 2 if currency_val == "USD" or final_region in ["Marmen US", "Marmen CAN"] else 1
+                    else:
+                        comp_name = COMPONENT_NAME_MAP.get(val8, val8.title())
+                        currency_val = str(row_data[7].get(col) or "").strip().upper()
+                        if final_region in ["Asia", "China", "Arcosa US", "CS Wind US", "Marmen US", "Marmen CAN", "US"] or currency_val == "USD":
+                            currency_type = 2
+                        else:
+                            currency_type = 1
                     col_map[col] = {
                         "component": comp_name,
                         "year": year,
-                        "currency_type": 1,
+                        "currency_type": currency_type,
                         "region": final_region
                     }
             
@@ -433,6 +472,10 @@ def run_extraction(
             static_cols_ts["Plates Weight gross"] = col
         elif "weight flanges" in val8:
             static_cols_ts["weight flanges"] = col
+            
+    # Si no se encontró el título Platform (p. ej. en v26.2 la columna B no tiene título), asume la columna 2
+    if "Platform" not in static_cols_ts:
+        static_cols_ts["Platform"] = 2
 
     _progress(30, f"Identificadas {len(col_map)} columnas objetivo")
 
@@ -496,10 +539,16 @@ def run_extraction(
                 regions_to_emit = [meta["region"]]
                 # Optionals for US also apply to Arcosa US, CS Wind US, and Marmen US
                 if meta["region"] == "US" and meta["component"].lower() in [c.lower() for c in COMPONENTS_REGION_ONLY]:
-                    regions_to_emit.extend(["Arcosa US", "CS Wind US", "Marmen US"])
+                    regions_to_emit = ["Arcosa US", "CS Wind US", "Marmen US"]  # Drop the generic "US" region entirely
+                elif meta["region"] == "US":
+                    # If there's any other component strictly mapped to "US", we drop it completely to prevent generic regions
+                    regions_to_emit = []
                 # Optionals for Canada (CAN) apply to Marmen CAN
                 if meta["region"] == "Canada" and meta["component"].lower() in [c.lower() for c in COMPONENTS_REGION_ONLY]:
                     regions_to_emit.append("Marmen CAN")
+
+            # Remove generic "US" from all emissions as requested by user
+            regions_to_emit = [r for r in regions_to_emit if r != "US"]
 
             for yr in years_to_emit:
                 for rgn in regions_to_emit:
@@ -635,11 +684,13 @@ def run_extraction(
             
             for pattern, comp_name in COMPONENT_PATTERNS.items():
                 if pattern in cell_str.lower():
+                    currency_type = 2 if "usd" in cell_str.lower() else 1
                     tcs_col_map[col] = {
                         "type": "block",
                         "component": comp_name,
                         "region": region,
-                        "year": year
+                        "year": year,
+                        "currency_type": currency_type
                     }
                     break
 
@@ -745,7 +796,7 @@ def run_extraction(
                         "weight flanges": weight_flanges,
                         "Year_Production": meta["year"],
                         "Region": meta["region"],
-                        "currency_type": 1,
+                        "currency_type": meta.get("currency_type", 1),
                         "value": value,
                     })
 
