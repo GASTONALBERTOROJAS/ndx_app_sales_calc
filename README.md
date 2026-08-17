@@ -69,6 +69,11 @@ Tras la ingesta, el pipeline dispara dos rutinas de procesamiento que recogen la
 - **Tabla para Ventas (`salescalc_tower_sales`)**:
   - Filtra columnas innecesarias y estandariza las monedas.
   - Formato estricto: `Year_Production` (INTEGER) y `Cost_Currency` (DECIMAL 10,2).
+  - *Nota: Esta es la tabla oficial que se provee y expone al departamento de Ventas.*
+
+- **Tabla de Materiales (`tower_materials`)**:
+  - Desglose detallado de materiales a nivel fábrica.
+  - *Nota: Esta es la base de datos maestra que utilizamos para uso interno.*
 
 - **Tabla para Power BI (`tower_powerbi`)**:
   - Combina "Tower Shell" y "Tower Internals" sumando sus costes.
