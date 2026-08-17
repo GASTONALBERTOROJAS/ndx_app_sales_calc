@@ -333,8 +333,8 @@ def run_extraction(
 
     col_map = {}
     for col, val in row_data[3].items():
-        # Ignore comparison/history blocks (which start at col 300 / KN in v26.2)
-        if col >= 300:
+        # Ignore comparison/history blocks (which start at col 301 in v26.2)
+        if col >= 301:
             continue
 
         parsed = parse_row3_value(str(val))
@@ -374,7 +374,7 @@ def run_extraction(
         }
 
     # Manual mapping for Canadian Projects and CAN Optionals (because Excel Row 3 is messed up for Col 53, 54, 55)
-    for col in range(1, 300):
+    for col in range(1, 301):
         val5 = str(row_data[5].get(col) or "").strip()
         val6 = str(row_data[6].get(col) or "").strip()
         
@@ -415,7 +415,7 @@ def run_extraction(
             
     # Parse TS SC Material blocks from rows 6 and 8
     current_val6 = ""
-    for col in range(1, 300): # Ampliado a 300 porque en v26.2 los datos llegan hasta la col 298
+    for col in range(1, 301): # Ampliado a 301 porque Marmen CAN 2028 Bolts está exactamente en la 300
         # Update current merged header if present
         v6 = str(row_data[6].get(col) or "").strip()
         if v6:
